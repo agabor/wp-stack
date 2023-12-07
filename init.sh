@@ -6,11 +6,13 @@ DB_NAME="wp_test"
 DB_USER="wp_test"
 DB_PASS="wp_testpass"
 
+WP_PATH="/var/www/wordpress"
 WP_TITLE="WP Test"
 WP_ADMIN_NAME="admin"
 WP_ADMIN_EMAIL="admin@admin.admin"
 WP_ADMIN_PASS="admin"
 
+#Initial install steps
 INSTALL_BASICS=1
 INSTALL_PHP=1
 CONFIG_PHP=1
@@ -20,6 +22,9 @@ INSTALL_CERTBOT=1
 REQUEST_CERT=1
 CREATE_DB=1
 INSTALL_WP=1
+
+#Tools
+RECREATE_DB=0
 
 export DEBIAN_FRONTEND=noninteractive
 
@@ -98,6 +103,8 @@ if [ $CONFIG_NGINX -eq 1 ]; then
     sudo rm $NGINX_PAGE_CNF_FILE
     sudo mv default $NGINX_PAGE_CNF_FILE
     sudo sed -Ei "s/^\s*server_name _;/        server_name $HOST_NAME;/" $NGINX_PAGE_CNF_FILE
+    sudo sed -Ei "s/^\s*root /var/www/wordpress;/        root $WP_PATH;/" $NGINX_PAGE_CNF_FILE
+    sudo sed -Ei "s/^\s*fastcgi_pass unix:/run/php/php8.2-fpm.sock;/                fastcgi_pass unix:/run/php/php$PHP_VERSION-fpm.sock;/" $NGINX_PAGE_CNF_FILE
     sudo systemctl restart nginx.service
 fi
 
@@ -126,7 +133,20 @@ fi
 
 if [ $INSTALL_WP -eq 1 ]; then
     sudo chown www-data:www-data /var/www
-    sudo -u www-data wp core download --path=/var/www/wordpress
+    sudo -u www-data wp core download --path=$WP_PATH
     sudo -u www-data wp config create --dbname=$DB_NAME --dbuser=$DB_USER --dbpass=$DB_PASS
     sudo -u www-data wp core install --url=https://$HOST_NAME --title=$WP_TITLE --admin_user=$WP_ADMIN_NAME --admin_password=$WP_ADMIN_PASS --admin_email=$WP_ADMIN_EMAIL
+fi
+
+if [ $RECREATE_DB -eq 1 ]; then
+    config_path="$WP_PATH/wp-config.php"
+    DB_NAME=$(grep DB_NAME $config_path | awk -F "'" '{print $4}')
+    DB_USER=$(grep DB_USER $config_path | awk -F "'" '{print $4}')
+    DB_PASS=$(grep DB_PASSWORD $config_path | awk -F "'" '{print $4}')
+    
+    sudo mariadb -e "DROP USER IF EXISTS '$DB_USER'@'localhost';"
+    sudo mariadb -e "DROP DATABASE IF EXISTS $DB_NAME;"
+    sudo mariadb -e "CREATE DATABASE $DB_NAME;"
+    sudo mariadb -e "CREATE USER '$DB_USER'@'localhost' IDENTIFIED BY '$DB_PASS';"
+    sudo mariadb -e "GRANT ALL PRIVILEGES ON $DB_NAME.* TO '$DB_USER'@'localhost';"
 fi
