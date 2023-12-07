@@ -17,6 +17,7 @@ INSTALL_BASICS=1
 INSTALL_PHP=1
 CONFIG_PHP=1
 CONFIG_NGINX=1
+CONFIG_NGINX_SITE=1
 INSTALL_WP_CLI=1
 INSTALL_CERTBOT=1
 REQUEST_CERT=1
@@ -98,14 +99,6 @@ if [ $CONFIG_PHP -eq 1 ]; then
 fi
 
 if [ $CONFIG_NGINX -eq 1 ]; then
-    NGINX_PAGE_CONF="/etc/nginx/sites-available/default" 
-    sudo curl -O https://raw.githubusercontent.com/agabor/wp-stack/main/default
-    sudo rm $NGINX_PAGE_CONF
-    sudo mv default $NGINX_PAGE_CONF
-    sudo sed -Ei "s/^\s*server_name _;/        server_name $HOST_NAME;/" $NGINX_PAGE_CONF
-    sudo sed -Ei "s/^\s*root /var/www/wordpress;/        root $WP_PATH;/" $NGINX_PAGE_CONF
-    sudo sed -Ei "s/^\s*fastcgi_pass unix:/run/php/php8.2-fpm.sock;/                fastcgi_pass unix:/run/php/php$PHP_VERSION-fpm.sock;/" $NGINX_PAGE_CNF_FILE
-
     NGINX_CONF="/etc/nginx/nginx.conf"
     CACHING_CONFIG="    open_file_cache          max=1000 inactive=20s;
         open_file_cache_valid    30s;
@@ -127,6 +120,19 @@ if [ $CONFIG_NGINX -eq 1 ]; then
 else
     echo "Error: nginx.conf file does not exist at $NGINX_CONF"
 fi
+    sudo nginx -t
+    sudo systemctl restart nginx.service
+fi
+
+if [ $CONFIG_NGINX_SITE -eq 1 ]; then
+    NGINX_PAGE_CONF="/etc/nginx/sites-available/default" 
+    sudo curl -O https://raw.githubusercontent.com/agabor/wp-stack/main/default
+    sudo rm $NGINX_PAGE_CONF
+    sudo mv default $NGINX_PAGE_CONF
+    sudo sed -Ei "s/^\s*server_name _;/        server_name $HOST_NAME;/" $NGINX_PAGE_CONF
+    sudo sed -Ei "s/^\s*root /var/www/wordpress;/        root $WP_PATH;/" $NGINX_PAGE_CONF
+    sudo sed -Ei "s/^\s*fastcgi_pass unix:/run/php/php8.2-fpm.sock;/                fastcgi_pass unix:/run/php/php$PHP_VERSION-fpm.sock;/" $NGINX_PAGE_CNF_FILE
+    sudo nginx -t
     sudo systemctl restart nginx.service
 fi
 
