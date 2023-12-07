@@ -11,86 +11,114 @@ WP_ADMIN_NAME="admin"
 WP_ADMIN_EMAIL="admin@admin.admin"
 WP_ADMIN_PASS="admin"
 
+INSTALL_BASICS=1
+INSTALL_PHP=1
+CONFIG_PHP=1
+CONFIG_NGINX=1
+INSTALL_WP_CLI=1
+INSTALL_CERTBOT=1
+CREATE_DB=1
+INSTALL_WP=1
+
 export DEBIAN_FRONTEND=noninteractive
 
-sudo apt update
-sudo apt upgrade -y
-sudo apt install -y nginx mariadb-client mariadb-server memcached software-properties-common curl
-sudo add-apt-repository ppa:ondrej/php
-sudo apt update
-
-php_extensions=(
-    "bcmath"
-    "cli"
-    "common"
-    "curl"
-    "fpm"
-    "gd"
-    "imagick"
-    "intl"
-    "mbstring"
-    "mysql"
-    "opcache"
-    "readline"
-    "soap"
-    "xml"
-    "zip"
-    "memcached"
-)
-
-install_command=""
-
-for ext in "${php_extensions[@]}"; do
-    install_command+="php$PHP_VERSION-$ext "
-done
-
-sudo apt install -y $install_command
-
-PHP_INI_FILE="/etc/php/$PHP_VERSION/fpm/php.ini" 
-
-if [ -f "$PHP_INI_FILE" ]; then
-    sudo sed -Ei "s/^;?\s*zend_extension\s*=\s*opcache/zend_extension=opcache/" $PHP_INI_FILE
-    declare -A settings=(
-        ["memory_limit"]="512M"
-        ["max_execution_time"]="120"
-        ["upload_max_filesize"]="64M"
-        ["post_max_size"]="64M"
-        ["max_input_vars"]="3000"
-        ["display_errors"]="Off"
-        ["session.gc_maxlifetime"]="1440"
-        ["opcache.enable"]="1"
-        ["file_uploads"]="On"
-        ["expose_php"]="Off"
-        ["session.cookie_httponly"]="1"
-    )
-    for setting in "${!settings[@]}"; do
-        value=${settings[$setting]}
-        sudo sed -Ei "s/^;?\s*$setting\s*=.*/$setting = $value/" $PHP_INI_FILE
-    done
-else
-    echo "Error: php.ini file does not exist at $PHP_INI_FILE"
+if [ $INSTALL_BASICS -eq 1 ]; then
+    echo "Installing basic software (NGINX, MariaDB, Memcached, etc.)"
+    sudo apt update
+    sudo apt upgrade -y
+    sudo apt install -y nginx mariadb-client mariadb-server memcached software-properties-common curl
 fi
 
-sudo curl -O https://raw.githubusercontent.com/agabor/wp-stack/main/default
-sudo rm /etc/nginx/sites-available/default
-sudo mv default /etc/nginx/sites-available/default
+if [ $INSTALL_PHP -eq 1 ]; then
+    echo "Installing PHP $PHP_VERSION modules"
+    sudo add-apt-repository ppa:ondrej/php
+    sudo apt update
+    
+    php_extensions=(
+        "bcmath"
+        "cli"
+        "common"
+        "curl"
+        "fpm"
+        "gd"
+        "imagick"
+        "intl"
+        "mbstring"
+        "mysql"
+        "opcache"
+        "readline"
+        "soap"
+        "xml"
+        "zip"
+        "memcached"
+    )
+    
+    install_command=""
+    
+    for ext in "${php_extensions[@]}"; do
+        install_command+="php$PHP_VERSION-$ext "
+    done
+    
+    sudo apt install -y $install_command
+fi
 
-sudo curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
-chmod +x wp-cli.phar
-sudo mv wp-cli.phar /usr/local/bin/wp
 
-sudo apt remove -y certbot
-sudo snap install --classic certbot
-sudo ln -s /snap/bin/certbot /usr/bin/certbot
+if [ $CONFIG_PHP -eq 1 ]; then
+    PHP_INI_FILE="/etc/php/$PHP_VERSION/fpm/php.ini" 
+    
+    if [ -f "$PHP_INI_FILE" ]; then
+        sudo sed -Ei "s/^;?\s*zend_extension\s*=\s*opcache/zend_extension=opcache/" $PHP_INI_FILE
+        declare -A settings=(
+            ["memory_limit"]="512M"
+            ["max_execution_time"]="120"
+            ["upload_max_filesize"]="64M"
+            ["post_max_size"]="64M"
+            ["max_input_vars"]="3000"
+            ["display_errors"]="Off"
+            ["session.gc_maxlifetime"]="1440"
+            ["opcache.enable"]="1"
+            ["file_uploads"]="On"
+            ["expose_php"]="Off"
+            ["session.cookie_httponly"]="1"
+        )
+        for setting in "${!settings[@]}"; do
+            value=${settings[$setting]}
+            sudo sed -Ei "s/^;?\s*$setting\s*=.*/$setting = $value/" $PHP_INI_FILE
+        done
+        sudo systemctl restart php$PHP_VERSION-fpm.service
+    else
+        echo "Error: php.ini file does not exist at $PHP_INI_FILE"
+    fi
+fi
 
-sudo mariadb -e "CREATE DATABASE $DB_NAME;"
-sudo mariadb -e "CREATE USER '$DB_USER'@'localhost' IDENTIFIED BY '$DB_PASS';"
-sudo mariadb -e "GRANT ALL PRIVILEGES ON $DB_NAME.* TO '$DB_USER'@'localhost';"
+if [ $CONFIG_NGINX -eq 1 ]; then
+    sudo curl -O https://raw.githubusercontent.com/agabor/wp-stack/main/default
+    sudo rm /etc/nginx/sites-available/default
+    sudo mv default /etc/nginx/sites-available/default
+    sudo systemctl restart nginx.service
+fi
 
-sudo chown www-data:www-data /var/www
-sudo -u www-data wp core download --path=/var/www/wordpress
-sudo -u www-data wp config create --dbname=$DB_NAME --dbuser=$DB_USER --dbpass=$DB_PASS
-sudo -u www-data wp core install --url=https://$HOST_NAME --title=$WP_TITLE --admin_user=$WP_ADMIN_NAME --admin_password=$WP_ADMIN_PASS --admin_email=$WP_ADMIN_EMAIL
+if [ $INSTALL_WP_CLI -eq 1 ]; then
+    sudo curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
+    chmod +x wp-cli.phar
+    sudo mv wp-cli.phar /usr/local/bin/wp
+fi
 
-sudo systemctl restart php$PHP_VERSION-fpm.service
-sudo systemctl restart nginx.service
+if [ $INSTALL_CERTBOT -eq 1 ]; then
+    sudo apt remove -y certbot
+    sudo snap install --classic certbot
+    sudo ln -s /snap/bin/certbot /usr/bin/certbot
+fi
+
+if [ $CREATE_DB -eq 1 ]; then
+    sudo mariadb -e "CREATE DATABASE $DB_NAME;"
+    sudo mariadb -e "CREATE USER '$DB_USER'@'localhost' IDENTIFIED BY '$DB_PASS';"
+    sudo mariadb -e "GRANT ALL PRIVILEGES ON $DB_NAME.* TO '$DB_USER'@'localhost';"
+fi
+
+if [ $INSTALL_WP -eq 1 ]; then
+    sudo chown www-data:www-data /var/www
+    sudo -u www-data wp core download --path=/var/www/wordpress
+    sudo -u www-data wp config create --dbname=$DB_NAME --dbuser=$DB_USER --dbpass=$DB_PASS
+    sudo -u www-data wp core install --url=https://$HOST_NAME --title=$WP_TITLE --admin_user=$WP_ADMIN_NAME --admin_password=$WP_ADMIN_PASS --admin_email=$WP_ADMIN_EMAIL
+fi
