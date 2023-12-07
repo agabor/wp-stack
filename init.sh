@@ -17,6 +17,7 @@ CONFIG_PHP=1
 CONFIG_NGINX=1
 INSTALL_WP_CLI=1
 INSTALL_CERTBOT=1
+REQUEST_CERT=1
 CREATE_DB=1
 INSTALL_WP=1
 
@@ -92,9 +93,11 @@ if [ $CONFIG_PHP -eq 1 ]; then
 fi
 
 if [ $CONFIG_NGINX -eq 1 ]; then
+    NGINX_PAGE_CNF_FILE="/etc/nginx/sites-available/default" 
     sudo curl -O https://raw.githubusercontent.com/agabor/wp-stack/main/default
-    sudo rm /etc/nginx/sites-available/default
-    sudo mv default /etc/nginx/sites-available/default
+    sudo rm $NGINX_PAGE_CNF_FILE
+    sudo mv default $NGINX_PAGE_CNF_FILE
+    sudo sed -Ei "s/^\s*server_name _;/        server_name $HOST_NAME;/" $NGINX_PAGE_CNF_FILE
     sudo systemctl restart nginx.service
 fi
 
@@ -108,6 +111,11 @@ if [ $INSTALL_CERTBOT -eq 1 ]; then
     sudo apt remove -y certbot
     sudo snap install --classic certbot
     sudo ln -s /snap/bin/certbot /usr/bin/certbot
+fi
+
+if [ $REQUEST_CERT -eq 1 ]; then
+    sudo certbot --nginx -n -d $HOST_NAME --agree-tos --email $WP_ADMIN_EMAIL
+    sudo systemctl restart nginx.service
 fi
 
 if [ $CREATE_DB -eq 1 ]; then
