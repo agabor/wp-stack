@@ -17,7 +17,7 @@ INSTALL_BASICS=1
 INSTALL_PHP=1
 CONFIG_PHP=1
 CONFIG_NGINX=1
-CONFIG_NGINX_SITE=1
+CONFIG_NGINX_HOST=1
 INSTALL_WP_CLI=1
 INSTALL_CERTBOT=1
 REQUEST_CERT=1
@@ -124,14 +124,14 @@ fi
     sudo systemctl restart nginx.service
 fi
 
-if [ $CONFIG_NGINX_SITE -eq 1 ]; then
-    NGINX_PAGE_CONF="/etc/nginx/sites-available/default" 
+if [ $CONFIG_NGINX_HOST -eq 1 ]; then
+    NGINX_HOST_CONF="/etc/nginx/sites-available/default" 
     sudo curl -O https://raw.githubusercontent.com/agabor/wp-stack/main/default
-    sudo rm $NGINX_PAGE_CONF
-    sudo mv default $NGINX_PAGE_CONF
-    sudo sed -Ei "s/^\s*server_name _;/        server_name $HOST_NAME;/" $NGINX_PAGE_CONF
-    sudo sed -Ei "s/^\s*root /var/www/wordpress;/        root $WP_PATH;/" $NGINX_PAGE_CONF
-    sudo sed -Ei "s/^\s*fastcgi_pass unix:/run/php/php8.2-fpm.sock;/                fastcgi_pass unix:/run/php/php$PHP_VERSION-fpm.sock;/" $NGINX_PAGE_CNF_FILE
+    sudo rm $NGINX_HOST_CONF
+    sudo mv default $NGINX_HOST_CONF
+    sudo sed -Ei "s/^\s*server_name _;/        server_name $HOST_NAME;/" $NGINX_HOST_CONF
+    sudo sed -Ei "s/^\s*root /var/www/wordpress;/        root $WP_PATH;/" $NGINX_HOST_CONF
+    sudo sed -Ei "s/^\s*fastcgi_pass unix:/run/php/php8.2-fpm.sock;/                fastcgi_pass unix:/run/php/php$PHP_VERSION-fpm.sock;/" $NGINX_HOST_CONF
     sudo nginx -t
     sudo systemctl restart nginx.service
 fi
