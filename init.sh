@@ -98,13 +98,35 @@ if [ $CONFIG_PHP -eq 1 ]; then
 fi
 
 if [ $CONFIG_NGINX -eq 1 ]; then
-    NGINX_PAGE_CNF_FILE="/etc/nginx/sites-available/default" 
+    NGINX_PAGE_CONF="/etc/nginx/sites-available/default" 
     sudo curl -O https://raw.githubusercontent.com/agabor/wp-stack/main/default
-    sudo rm $NGINX_PAGE_CNF_FILE
-    sudo mv default $NGINX_PAGE_CNF_FILE
-    sudo sed -Ei "s/^\s*server_name _;/        server_name $HOST_NAME;/" $NGINX_PAGE_CNF_FILE
-    sudo sed -Ei "s/^\s*root /var/www/wordpress;/        root $WP_PATH;/" $NGINX_PAGE_CNF_FILE
+    sudo rm $NGINX_PAGE_CONF
+    sudo mv default $NGINX_PAGE_CONF
+    sudo sed -Ei "s/^\s*server_name _;/        server_name $HOST_NAME;/" $NGINX_PAGE_CONF
+    sudo sed -Ei "s/^\s*root /var/www/wordpress;/        root $WP_PATH;/" $NGINX_PAGE_CONF
     sudo sed -Ei "s/^\s*fastcgi_pass unix:/run/php/php8.2-fpm.sock;/                fastcgi_pass unix:/run/php/php$PHP_VERSION-fpm.sock;/" $NGINX_PAGE_CNF_FILE
+
+    NGINX_CONF="/etc/nginx/nginx.conf"
+    CACHING_CONFIG="    open_file_cache          max=1000 inactive=20s;
+        open_file_cache_valid    30s;
+        open_file_cache_min_uses 2;
+        open_file_cache_errors   on;"
+    if [ -f "$NGINX_CONF" ]; then
+    if ! grep -q "open_file_cache" "$NGINX_CONF"; then
+        sudo sed -i "/http {/a $CACHING_CONFIG" $NGINX_CONF
+        echo "Caching configuration added to $NGINX_CONF."
+    else
+        echo "Caching configuration already present in $NGINX_CONF."
+    fi
+
+    sudo sed -Ei "s/^\s*worker_connections \d+;/        worker_connections 1024;/" $NGINX_CONF
+    sudo sed -Ei "s/^\s*#?\s*gzip o.+;/        gzip on;/" $NGINX_CONF
+    sudo sed -Ei "s/^\s*#?\s*gzip_vary o.+;/        gzip_vary on;/" $NGINX_CONF
+    sudo sed -Ei "s/^\s*#?\s*gzip_proxied .+;/        gzip_proxied any;/" $NGINX_CONF
+    sudo sed -Ei "s/^\s*#?\s*gzip_comp_level .+;/        gzip_comp_level 5;/" $NGINX_CONF
+else
+    echo "Error: nginx.conf file does not exist at $NGINX_CONF"
+fi
     sudo systemctl restart nginx.service
 fi
 
