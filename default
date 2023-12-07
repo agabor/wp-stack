@@ -1,0 +1,68 @@
+fastcgi_cache_path /usr/share/nginx/fastcgi_cache levels=1:2 keys_zone=WORDPRESS:100m max_size=10g inactive=10m use_temp_path=off;
+fastcgi_cache_key "$scheme$request_method$host$request_uri";
+fastcgi_ignore_headers Cache-Control Expires Set-Cookie ;
+
+server {
+
+        root /var/www/wordpress;
+
+        index index.php;
+
+        server_name _;
+
+        client_max_body_size 100M;
+
+        location = /xmlrpc.php {
+                deny all;
+                return 403;
+        }
+
+        location ~* \.(gif|jpg|png|webp|svg|css|js|ttf)$ {
+                expires 1y;
+                add_header Cache-Control "public, max-age=31536000";
+                try_files $uri $uri/ =404;
+        }
+
+        location / {
+                try_files $uri $uri/ /index.php?$args;
+        }
+
+        set $skip_cache 0;
+        # POST requests and urls with a query string should always go to PHP
+        if ($request_method = POST) {
+                set $skip_cache 1;
+        }
+        if ($query_string != "") {
+                set $skip_cache 1;
+        }
+
+        # Don't cache uris containing the following segments
+        if ($request_uri ~* "/wp-admin/|/cart/|/xmlrpc.php|wp-..php|^/feed/|/tag/./feed/|/.sitemap..(xml|xsl)") {
+                set $skip_cache 1;
+        }
+
+        # Don't use the cache for logged in users or recent commenters
+        if ($http_cookie ~* "comment_author|wordpress_[a-f0-9]+|wp-postpass|wordpress_no_cache|wordpress_logged_in") {
+                set $skip_cache 1;
+        }
+
+
+        location ~ \.php$ {
+                include snippets/fastcgi-php.conf;
+                fastcgi_pass unix:/run/php/php8.2-fpm.sock;
+                fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+                fastcgi_read_timeout 300s;
+                fastcgi_cache WORDPRESS;
+                fastcgi_cache_valid 200 301 302 60m;
+                fastcgi_cache_use_stale error timeout updating invalid_header http_500 http_503;
+                fastcgi_cache_min_uses 1;
+                fastcgi_cache_lock on;
+                fastcgi_cache_bypass $skip_cache;
+                fastcgi_no_cache $skip_cache;
+                add_header X-FastCGI-Cache $upstream_cache_status;
+
+        }
+
+        listen 80 default_server;
+        listen [::]:80 default_server;
+}
