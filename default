@@ -1,5 +1,6 @@
 fastcgi_cache_path /usr/share/nginx/fastcgi_cache levels=1:2 keys_zone=WORDPRESS:100m max_size=10g inactive=10m use_temp_path=off;
 fastcgi_cache_key "$scheme$request_method$host$request_uri";
+fastcgi_cache_use_stale error timeout invalid_header http_500;
 fastcgi_ignore_headers Cache-Control Expires Set-Cookie ;
 
 server {
@@ -10,7 +11,10 @@ server {
 
         server_name _;
 
-        client_max_body_size 100M;
+        add_header X-Frame-Options "SAMEORIGIN" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header X-XSS-Protection "1; mode=block" always;
+        add_header Referrer-Policy "no-referrer-when-downgrade" always;
 
         location = /xmlrpc.php {
                 deny all;
