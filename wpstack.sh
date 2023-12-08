@@ -13,20 +13,56 @@ WP_ADMIN_EMAIL="admin@admin.admin"
 WP_ADMIN_PASS="admin"
 
 #Initial install steps
-INSTALL_BASICS=1
-INSTALL_PHP=1
-CONFIG_PHP=1
-CONFIG_NGINX=1
-CONFIG_NGINX_HOST=1
-INSTALL_WP_CLI=1
-INSTALL_CERTBOT=1
-REQUEST_CERT=1
-CREATE_DB=1
-INSTALL_WP=1
+INSTALL_BASICS=0
+INSTALL_PHP=0
+CONFIG_PHP=0
+CONFIG_NGINX=0
+CONFIG_NGINX_HOST=0
+INSTALL_WP_CLI=0
+INSTALL_CERTBOT=0
+REQUEST_CERT=0
+CREATE_DB=0
+INSTALL_WP=0
 
 #Tools
 RECREATE_DB=0
 UPDATE=0
+
+if [ $# -gt 0 ]; then
+    if [ "$1" = "INIT" ]; then
+        INSTALL_BASICS=1
+        INSTALL_PHP=1
+        CONFIG_PHP=1
+        CONFIG_NGINX=1
+        CONFIG_NGINX_HOST=1
+        INSTALL_WP_CLI=1
+        INSTALL_CERTBOT=1
+        REQUEST_CERT=1
+        CREATE_DB=1
+        INSTALL_WP=1
+    else
+        for arg in "$@"; do
+            declare "$arg=1"
+        done
+    fi
+else
+    echo "No command is given. Possible commands:"
+    echo "Server initialization steps:"
+    echo "INSTALL_BASICS"
+    echo "INSTALL_PHP"
+    echo "CONFIG_PHP"
+    echo "CONFIG_NGINX"
+    echo "CONFIG_NGINX_HOST"
+    echo "INSTALL_WP_CLI"
+    echo "INSTALL_CERTBOT"
+    echo "REQUEST_CERT"
+    echo "CREATE_DB"
+    echo "INSTALL_WP"
+    echo "Use the INIT command to run all!"
+    echo "Tools:"
+    echo "RECREATE_DB"
+    echo "UPDATE"
+fi
 
 export DEBIAN_FRONTEND=noninteractive
 
