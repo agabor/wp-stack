@@ -216,5 +216,5 @@ if [ $UPDATE -eq 1 ]; then
     echo "sudo curl -o /usr/local/bin/wpstack https://raw.githubusercontent.com/agabor/wp-stack/main/wpstack.sh" >> $UPDATER_SCRIPT
     echo "sudo chmod +x /usr/local/bin/wpstack" >> $UPDATER_SCRIPT
     echo "sudo rm $UPDATER_SCRIPT" >> $UPDATER_SCRIPT
-    $UPDATER_SCRIPT &
+    ./$UPDATER_SCRIPT &
 fi
