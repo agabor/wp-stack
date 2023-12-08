@@ -102,6 +102,7 @@ fi
 
 
 if [ $CONFIG_PHP -eq 1 ]; then
+    echo "Configuring PHP for WordPress";
     PHP_INI_FILE="/etc/php/$PHP_VERSION/fpm/php.ini" 
     
     if [ -f "$PHP_INI_FILE" ]; then
@@ -130,36 +131,19 @@ if [ $CONFIG_PHP -eq 1 ]; then
 fi
 
 if [ $CONFIG_NGINX -eq 1 ]; then
+    echo "Configuring NGINX for WordPress";
     NGINX_CONF="/etc/nginx/nginx.conf"
-    CACHING_CONFIG="    open_file_cache          max=1000 inactive=20s;
-        open_file_cache_valid    30s;
-        open_file_cache_min_uses 2;
-        open_file_cache_errors   on;"
-    if [ -f "$NGINX_CONF" ]; then
-    if ! grep -q "open_file_cache" "$NGINX_CONF"; then
-        sudo sed -i "/http {/a $CACHING_CONFIG" $NGINX_CONF
-        echo "Caching configuration added to $NGINX_CONF."
-    else
-        echo "Caching configuration already present in $NGINX_CONF."
-    fi
-
-    sudo sed -Ei "s/^\s*worker_connections \d+;/        worker_connections 1024;/" $NGINX_CONF
-    sudo sed -Ei "s/^\s*#?\s*gzip o.+;/        gzip on;/" $NGINX_CONF
-    sudo sed -Ei "s/^\s*#?\s*gzip_vary o.+;/        gzip_vary on;/" $NGINX_CONF
-    sudo sed -Ei "s/^\s*#?\s*gzip_proxied .+;/        gzip_proxied any;/" $NGINX_CONF
-    sudo sed -Ei "s/^\s*#?\s*gzip_comp_level .+;/        gzip_comp_level 5;/" $NGINX_CONF
-else
-    echo "Error: nginx.conf file does not exist at $NGINX_CONF"
-fi
+    sudo rm $NGINX_CONF
+    sudo curl -o $NGINX_CONF https://raw.githubusercontent.com/agabor/wp-stack/main/nginx.conf
     sudo nginx -t
     sudo systemctl restart nginx.service
 fi
 
 if [ $CONFIG_NGINX_HOST -eq 1 ]; then
+    echo "Configuring NGINX host for WordPress";
     NGINX_HOST_CONF="/etc/nginx/sites-available/default" 
-    sudo curl -O https://raw.githubusercontent.com/agabor/wp-stack/main/default
     sudo rm $NGINX_HOST_CONF
-    sudo mv default $NGINX_HOST_CONF
+    sudo curl -o $NGINX_HOST_CONF https://raw.githubusercontent.com/agabor/wp-stack/main/default
     sudo sed -Ei "s/^\s*server_name _;/        server_name $HOST_NAME;/" $NGINX_HOST_CONF
     sudo sed -Ei "s/^\s*fastcgi_pass unix:\/run\/php\/php8.2-fpm.sock;/                fastcgi_pass unix:\/run\/php\/php$PHP_VERSION-fpm.sock;/" $NGINX_HOST_CONF
     sudo nginx -t
@@ -167,29 +151,34 @@ if [ $CONFIG_NGINX_HOST -eq 1 ]; then
 fi
 
 if [ $INSTALL_WP_CLI -eq 1 ]; then
+    echo "Installing WordPress CLI";
     sudo curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
     sudo chmod +x wp-cli.phar
     sudo mv wp-cli.phar /usr/local/bin/wp
 fi
 
 if [ $INSTALL_CERTBOT -eq 1 ]; then
+    echo "Installing Certbot";
     sudo apt remove -y certbot
     sudo snap install --classic certbot
     sudo ln -s /snap/bin/certbot /usr/bin/certbot
 fi
 
 if [ $REQUEST_CERT -eq 1 ]; then
+    echo "Requesting SSL certificate"
     sudo certbot --nginx -n -d $HOST_NAME --agree-tos --email $WP_ADMIN_EMAIL
     sudo systemctl restart nginx.service
 fi
 
 if [ $CREATE_DB -eq 1 ]; then
+    echo "Creating database in MariaDB server."
     sudo mariadb -e "CREATE DATABASE $DB_NAME;"
     sudo mariadb -e "CREATE USER '$DB_USER'@'localhost' IDENTIFIED BY '$DB_PASS';"
     sudo mariadb -e "GRANT ALL PRIVILEGES ON $DB_NAME.* TO '$DB_USER'@'localhost';"
 fi
 
 if [ $INSTALL_WP -eq 1 ]; then
+    echo "Installing WordPress"
     sudo chown www-data:www-data /var/www
     sudo -u www-data wp core download --path=$WP_PATH
     sudo -u www-data wp config create --dbname=$DB_NAME --dbuser=$DB_USER --dbpass=$DB_PASS
@@ -197,6 +186,7 @@ if [ $INSTALL_WP -eq 1 ]; then
 fi
 
 if [ $RECREATE_DB -eq 1 ]; then
+    echo "Dropping and recreating database"
     config_path="$WP_PATH/wp-config.php"
     DB_NAME=$(grep DB_NAME $config_path | awk -F "'" '{print $4}')
     DB_USER=$(grep DB_USER $config_path | awk -F "'" '{print $4}')
@@ -210,6 +200,7 @@ if [ $RECREATE_DB -eq 1 ]; then
 fi
 
 if [ $UPDATE -eq 1 ]; then
+    echo "Running self update"
     sudo curl -o /usr/local/bin/wpstack https://raw.githubusercontent.com/agabor/wp-stack/main/wpstack.sh
     sudo chmod +x /usr/local/bin/wpstack
 fi
