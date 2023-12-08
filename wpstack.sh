@@ -161,8 +161,7 @@ if [ $CONFIG_NGINX_HOST -eq 1 ]; then
     sudo rm $NGINX_HOST_CONF
     sudo mv default $NGINX_HOST_CONF
     sudo sed -Ei "s/^\s*server_name _;/        server_name $HOST_NAME;/" $NGINX_HOST_CONF
-    sudo sed -Ei "s/^\s*root /var/www/wordpress;/        root $WP_PATH;/" $NGINX_HOST_CONF
-    sudo sed -Ei "s/^\s*fastcgi_pass unix:/run/php/php8.2-fpm.sock;/                fastcgi_pass unix:/run/php/php$PHP_VERSION-fpm.sock;/" $NGINX_HOST_CONF
+    sudo sed -Ei "s/^\s*fastcgi_pass unix:\/run\/php\/php8.2-fpm.sock;/                fastcgi_pass unix:\/run\/php\/php$PHP_VERSION-fpm.sock;/" $NGINX_HOST_CONF
     sudo nginx -t
     sudo systemctl restart nginx.service
 fi
