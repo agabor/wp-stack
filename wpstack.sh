@@ -1,16 +1,10 @@
 #!/bin/bash
 
-PHP_VERSION="8.2"
-HOST_NAME="test.codesharp.dev"
-DB_NAME="wp_test"
-DB_USER="wp_test"
-DB_PASS="wp_testpass"
+if [ ! -f "~/wpstack.cfg" ]; then
+    curl -o ~/wpstack.cfg https://raw.githubusercontent.com/agabor/wp-stack/main/wpstack.cfg
+fi
 
-WP_PATH="/var/www/wordpress"
-WP_TITLE="WP Test"
-WP_ADMIN_NAME="admin"
-WP_ADMIN_EMAIL="admin@admin.admin"
-WP_ADMIN_PASS="admin"
+source ~/wpstack.cfg
 
 #Initial install steps
 INSTALL_BASICS=0
@@ -217,7 +211,6 @@ if [ $RECREATE_DB -eq 1 ]; then
 fi
 
 if [ $UPDATE -eq 1 ]; then
-    sudo curl -O https://raw.githubusercontent.com/agabor/wp-stack/main/wpstack.sh
-    sudo chmod +x wpstack.sh
-    sudo mv wpstack.sh /usr/local/bin/wpstack
+    sudo curl -o /usr/local/bin/wpstack https://raw.githubusercontent.com/agabor/wp-stack/main/wpstack.sh
+    sudo chmod +x /usr/local/bin/wpstack
 fi
