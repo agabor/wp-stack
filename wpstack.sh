@@ -210,6 +210,11 @@ fi
 
 if [ $UPDATE -eq 1 ]; then
     echo "Running self update"
-    sudo curl -o /usr/local/bin/wpstack https://raw.githubusercontent.com/agabor/wp-stack/main/wpstack.sh
-    sudo chmod +x /usr/local/bin/wpstack
+    UPDATER_SCRIPT="wpstackupdater.sh"
+    echo "sleep 1" > $UPDATER_SCRIPT
+    echo "echo 'Downloading WP Stack'" >> $UPDATER_SCRIPT
+    echo "sudo curl -o /usr/local/bin/wpstack https://raw.githubusercontent.com/agabor/wp-stack/main/wpstack.sh" >> $UPDATER_SCRIPT
+    echo "sudo chmod +x /usr/local/bin/wpstack" >> $UPDATER_SCRIPT
+    echo "sudo rm $UPDATER_SCRIPT" >> $UPDATER_SCRIPT
+    $UPDATER_SCRIPT &
 fi
