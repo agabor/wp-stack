@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if [ ! -f "~/wpstack.cfg" ]; then
+if [ ! -f ~/wpstack.cfg ]; then
     curl -o ~/wpstack.cfg https://raw.githubusercontent.com/agabor/wp-stack/main/wpstack.cfg
 fi
 
