@@ -191,7 +191,7 @@ if [ $INSTALL_WP -eq 1 ]; then
     sudo chown www-data:www-data /var/www
     sudo -u www-data wp core download --path=$WP_PATH
     sudo -u www-data wp config create --dbname=$DB_NAME --dbuser=$DB_USER --dbpass=$DB_PASS --path=$WP_PATH
-    sudo -u www-data wp core install --url=https://$HOST_NAME --title=$WP_TITLE --admin_user=$WP_ADMIN_NAME --admin_password=$WP_ADMIN_PASS --admin_email=$WP_ADMIN_EMAIL --path=$WP_PATH
+    sudo -u www-data wp core install --url=https://$HOST_NAME --title="$WP_TITLE" --admin_user="$WP_ADMIN_NAME" --admin_password="$WP_ADMIN_PASS" --admin_email=$WP_ADMIN_EMAIL --path=$WP_PATH
 fi
 
 if [ $RECREATE_DB -eq 1 ]; then
