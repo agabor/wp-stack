@@ -7,6 +7,7 @@ fi
 source ~/wpstack.cfg
 
 #Initial install steps
+APT_UPGRADE=0
 INSTALL_BASICS=0
 INSTALL_PHP=0
 CONFIG_PHP=0
@@ -41,6 +42,7 @@ if [ $# -gt 0 ]; then
     fi
 else
     echo "No command is given. Possible commands:"
+    echo "APT_UPGRADE"
     echo "Server initialization steps:"
     echo "INSTALL_BASICS"
     echo "INSTALL_PHP"
@@ -52,13 +54,20 @@ else
     echo "REQUEST_CERT"
     echo "CREATE_DB"
     echo "INSTALL_WP"
-    echo "Use the INIT command to run all!"
+    echo "Use the INIT command to run all server initialization steps!"
     echo "Tools:"
     echo "RECREATE_DB"
     echo "UPDATE"
 fi
 
 export DEBIAN_FRONTEND=noninteractive
+
+if [ $APT_UPGRADE -eq 1 ]; then
+    echo "APT upgrade and reboot"
+    sudo apt update
+    sudo apt upgrade -y
+    sudo reboot
+fi
 
 if [ $INSTALL_BASICS -eq 1 ]; then
     echo "Installing basic software (NGINX, MariaDB, Memcached, etc.)"
