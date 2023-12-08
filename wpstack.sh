@@ -26,6 +26,7 @@ INSTALL_WP=1
 
 #Tools
 RECREATE_DB=0
+UPDATE=0
 
 export DEBIAN_FRONTEND=noninteractive
 
@@ -138,7 +139,7 @@ fi
 
 if [ $INSTALL_WP_CLI -eq 1 ]; then
     sudo curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
-    chmod +x wp-cli.phar
+    sudo chmod +x wp-cli.phar
     sudo mv wp-cli.phar /usr/local/bin/wp
 fi
 
@@ -177,4 +178,10 @@ if [ $RECREATE_DB -eq 1 ]; then
     sudo mariadb -e "CREATE DATABASE $DB_NAME;"
     sudo mariadb -e "CREATE USER '$DB_USER'@'localhost' IDENTIFIED BY '$DB_PASS';"
     sudo mariadb -e "GRANT ALL PRIVILEGES ON $DB_NAME.* TO '$DB_USER'@'localhost';"
+fi
+
+if [ $UPDATE -eq 1 ]; then
+    sudo curl -O https://raw.githubusercontent.com/agabor/wp-stack/main/wpstack.sh
+    sudo chmod +x wpstack.sh
+    sudo mv wpstack.sh /usr/local/bin/wpstack
 fi
